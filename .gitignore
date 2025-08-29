@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Docker
+*.pid
+
+# Others
+.idea/
+.vscode/
+
+# Ignore build artifacts
+/dist/
+/build/
+

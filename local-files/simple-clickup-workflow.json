@@ -1,0 +1,68 @@
+{
+  "name": "Simple ClickUp MCP Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clickup-agent",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "ClickUp Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "webhookId": "clickup-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple MCP ClickUp Integration\nconst { spawn } = require('child_process');\n\n// Get the action from webhook data\nconst action = $input.item.json.action || 'list_tasks';\nconst params = $input.item.json.params || {};\n\nconsole.log('Executing ClickUp MCP action:', action);\n\n// Execute MCP command\nconst mcpCommand = spawn('npx', ['-y', '@taazkareem/clickup-mcp-server@latest'], {\n  env: {\n    ...process.env,\n    CLICKUP_API_KEY: process.env.CLICKUP_API_KEY,\n    CLICKUP_TEAM_ID: process.env.CLICKUP_TEAM_ID,\n    DOCUMENT_SUPPORT: 'true'\n  },\n  stdio: ['pipe', 'pipe', 'pipe']\n});\n\nlet result = '';\nlet error = '';\n\nawait new Promise((resolve, reject) => {\n  mcpCommand.stdout.on('data', (data) => {\n    result += data.toString();\n  });\n  \n  mcpCommand.stderr.on('data', (data) => {\n    error += data.toString();\n  });\n  \n  mcpCommand.on('close', (code) => {\n    if (code === 0) {\n      resolve();\n    } else {\n      reject(new Error(`MCP process exited with code ${code}: ${error}`));\n    }\n  });\n  \n  // Send command to MCP server\n  const command = {\n    jsonrpc: '2.0',\n    id: 1,\n    method: 'tools/list'\n  };\n  \n  mcpCommand.stdin.write(JSON.stringify(command) + '\\n');\n  mcpCommand.stdin.end();\n});\n\nreturn {\n  action: action,\n  success: true,\n  result: result,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "mcp-executor",
+      "name": "Execute MCP Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "ClickUp Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute MCP Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute MCP Command": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "id": "simple-clickup-mcp"
+}
+

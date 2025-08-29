@@ -1,0 +1,186 @@
+{
+  "name": "ClickUp MCP Agent Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "fc6c4e5e-df4e-4e5a-8e3a-1b2c3d4e5f6g",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [820, 380]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mcp-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "MCP Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [820, 280],
+      "webhookId": "mcp-agent-webhook"
+    },
+    {
+      "parameters": {
+        "command": "node /data/local-files/mcp-bridge.js",
+        "options": {}
+      },
+      "id": "mcp-execute",
+      "name": "Execute MCP Command",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1040, 280]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "list_tasks",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-action",
+      "name": "Check Action Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1260, 280]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.result }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond with Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1480, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"error\": \"Unknown action or MCP server error\", \"details\": \"{{ $json.error || 'No error details available' }}\"}",
+        "options": {}
+      },
+      "id": "respond-error",
+      "name": "Respond with Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1480, 360]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "format-result",
+              "name": "formatted_result",
+              "value": "={{ JSON.stringify({\n  \"action\": $('MCP Agent Webhook').item.json.action,\n  \"result\": $json,\n  \"timestamp\": new Date().toISOString(),\n  \"status\": \"success\"\n}, null, 2) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1480, 120]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Execute MCP Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute MCP Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute MCP Command": {
+      "main": [
+        [
+          {
+            "node": "Check Action Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Action Type": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond with Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "local"
+  },
+  "id": "clickup-mcp-workflow",
+  "tags": []
+}
+

@@ -1,0 +1,13 @@
+{
+  "name": "n8n-latest-docker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "mcp-http-wrapper.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
